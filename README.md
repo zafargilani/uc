@@ -1,6 +1,6 @@
 # User Classification
 
-A library that classifies social media entities of Pakistan into any of the four main political entities per feature-set (Hashtags, URLs, Friends, Tweets). The strength or accuracy of the classification is indicated by confidence levels in percentage.
+A library that classifies social media entities of Pakistan into any of the four main political entities per feature-set (Hashtags, Links, Friends, Tweets). The strength or accuracy of the classification is indicated by confidence levels in percentage.
 
 ## Installation
 
