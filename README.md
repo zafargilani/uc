@@ -1,5 +1,8 @@
 # User Classification
 
+Contributors: [Sarim Zafar](sarim.zafar71@gmail.com), [Usman Sarwar](usman.sarwar23@gmail.com), [Zafar Gilani](zafargilani@gmail.com)
+License: GPL 3.0
+
 A library that classifies social media entities of Pakistan into any of the four main political entities per feature-set (Hashtags, Links, Friends, Tweets). The strength or accuracy of the classification is indicated by confidence levels in percentage.
 
 ## Installation

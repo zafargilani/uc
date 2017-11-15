@@ -2,8 +2,6 @@ import os
 from spyre import server
 import liveprediction
 
-
-
 class SimpleApp(server.App):
     title = "Classifying Twitter users in Pakistan"
     
