@@ -1,1 +1,9 @@
 config.ini
+*.pyc
+__pycache__/
+bio/
+hashtag/
+ids/
+links/
+mention/
+tweets/
