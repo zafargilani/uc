@@ -20,7 +20,10 @@ CONSUMER_SECRET = parser.get('app','CONSUMER_SECRET')
 ACCESS_TOKEN = parser.get('app','ACCESS_TOKEN')
 ACCESS_SECRET = parser.get('app','ACCESS_SECRET')
 FRIENDS_TO_PULL = parser.getint('app','FRIENDS_TO_PULL')
+#We will use the getint method because we know that it is an integer
+TWEETS_TO_PULL = parser.getint('app','TWEETS_TO_PULL')
 MAPPED_STR = parser.get('app', 'MAPPING').replace(' ', '').split(',')
+
 mapping = {}
 for i in range(0, len(MAPPED_STR)):
 	mapping[int(MAPPED_STR[i].split(':')[0])] = MAPPED_STR[i].split(':')[1]
@@ -92,6 +95,8 @@ json_data = open('bio/Biomodel.txt').read()
 bioclf = model_from_json(json_data)
 bioclf.load_weights('bio/bio3layer256.h5')
 
+#Using a lock to avoid any mishap while appending results
+lock = threading.Lock()
 
 def is_user_valid():
 	# stub
@@ -107,7 +112,7 @@ def pull_following(user, allfriends):
 	auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
 	api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True, compression=True)
 	print("Fetching friends ..")
-	
+
 	for friend in tweepy.Cursor(api.friends_ids,screen_name=user).items():
 		# Process the friend here
 		allfriends.append((friend))
@@ -132,7 +137,7 @@ def pull_tweets(user, alltweets):
 	# keep grabbing tweets until there are no tweets left to grab
 	while len(new_tweets) > 0:
 		print (len(alltweets))
-		if len(alltweets)>=FRIENDS_TO_PULL:
+		if len(alltweets)>=TWEETS_TO_PULL:
 			return alltweets
 		# all subsiquent requests use the max_id param to prevent duplicates
 		new_tweets = api.user_timeline(screen_name=user, count=200, max_id=oldest, include_rts=True)
@@ -140,7 +145,7 @@ def pull_tweets(user, alltweets):
 		alltweets.extend(new_tweets)
 		# update the id of the oldest tweet less one
 		oldest = alltweets[-1].id - 1
-	
+
 	return alltweets
 
 def extract_hashtags(alltweets):
@@ -206,7 +211,9 @@ def classify_hashtags(alltweets, Result,):
 	result2 = lb_hashtags.inverse_transform(result)
 	result = list(result[0])
 	print("Hashtag classification ")
+	lock.acquire()
 	Result.append("with " + str(max(result)*100) + "% confidence, Hashtag classification: " + mapping[int(result2)])
+	lock.release()
 	return
 
 def classify_mentions(alltweets, Result,):
@@ -222,7 +229,9 @@ def classify_mentions(alltweets, Result,):
 	result2 = lb_mentions.inverse_transform(result)
 	result = list(result[0])
 	print("Mentions classification ")
+	lock.acquire()
 	Result.append("with " + str(max(result)*100) + "% confidence, Mentions classification: " + mapping[int(result2)])
+	lock.release()
 	return
 
 def classify_friends(allfriends, Result,):
@@ -238,7 +247,9 @@ def classify_friends(allfriends, Result,):
 	result2 = lb_friends.inverse_transform(result)
 	result = list(result[0])
 	print("Friends classification ")
+	lock.acquire()
 	Result.append("with " + str(max(result)*100) + "% confidence, Friends classification: " + mapping[int(result2)])
+	lock.release()
 	return
 
 def classify_tweet(alltweets, Result,):
@@ -254,7 +265,9 @@ def classify_tweet(alltweets, Result,):
 	result2 = lb_tweets.inverse_transform(result)
 	result = list(result[0])
 	print("Tweet classification ")
+	lock.acquire()
 	Result.append("with " + str(max(result)*100) + "% confidence, Tweets classification: " + mapping[int(result2)])
+	lock.release()
 	return
 
 def classify_bio(alltweets, Result,):
@@ -272,9 +285,9 @@ def classify_bio(alltweets, Result,):
 	result2 = lb_bios.inverse_transform(result)
 	result = list(result[0])
 	print("Bio classification ")
-	#result2=clf.predict_proba(X_test)
-	#print result2[0][indices[str(result[0])]]
+	lock.acquire()
 	Result.append("with " + str(max(result)*100) + "% confidence, Bio classification: " + mapping[int(result2)])
+	lock.release()
 	return
 
 def classify_links(alltweets, Result,):
@@ -291,7 +304,9 @@ def classify_links(alltweets, Result,):
 	result2 = lb_links.inverse_transform(result)
 	result = list(result[0])
 	print("Links classification ")
+	lock.acquire()
 	Result.append("with " + str(max(result)*100) + "% confidence, Links classification: " + mapping[int(result2)])
+	lock.release()
 	return
 
 def classify(alltweets, allfriends, Result,):
