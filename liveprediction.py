@@ -4,9 +4,24 @@ import threading
 from sklearn.externals import joblib
 from keras.models import load_model
 from keras.models import model_from_json
-import configparser
+from configparser import ConfigParser
 
-config = configparser.ConfigParser()
+
+#Initializing the configuration parser
+parser = ConfigParser()
+#Reading the config file
+parser.read('config.ini')
+
+#Loading the configuration
+CONSUMER_KEY = parser.get('app', 'CONSUMER_KEY')
+CONSUMER_SECRET = parser.get('app','CONSUMER_SECRET')
+ACCESS_TOKEN = parser.get('app','ACCESS_TOKEN')
+ACCESS_SECRET = parser.get('app','ACCESS_SECRET')
+#We will use the getint method because we know that it is an integer
+FRIENDS_TO_PULL = parser.getint('app','FRIENDS_TO_PULL')
+
+print("Config file loaded")
+
 
 #Loading transformers and classifiers
 cv_links=joblib.load('links/cv_links.joblib.pkl')
@@ -74,8 +89,9 @@ json_data=open('bio/Biomodel.txt').read()
 bioclf = model_from_json(json_data)
 bioclf.load_weights('bio/bio3layer256.h5')
 print ("BIO Classifier loaded")
-    
 mapping={1:'PTI',2:'PML-N',3:'MQM',4:'PPP'}
+
+
 def is_user_valid():
     #stub
     return
@@ -84,31 +100,23 @@ def is_user_public():
     return
 
 def pull_following(user,allfriends):
-    config.read('config.ini')
-    CONSUMER_KEY = config['app']['CONSUMER_KEY']
-    CONSUMER_SECRET = config['app']['CONSUMER_SECRET']
-    ACCESS_TOKEN = config['app']['ACCESS_TOKEN']
-    ACCESS_SECRET = config['app']['ACCESS_SECRET']
-    print(CONSUMER_KEY)
     #API authentication
-    auth = tweepy.OAuthHandler('wAPYPlEpG8RTe4PpyJ0sGau4B', 'DfLpnQrRUG2TEZmB3ovvipn7LV9mQQfqvFjDQo6H5iyx1sVqkE')
-    auth.set_access_token('774246744133603328-SRXBwOfBlEILqw9pU3UDicNJHqI9Agz', 'Sy85WcL3hED8O9ocSKbRsy25HdhQMaBeyEJiD1dRG7zsg')
-    #auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-    #auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
+    auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+    auth.set_access_token(ACCESS_TOKEN,ACCESS_SECRET)
     api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True, compression=True)
     print("Fetching friends")
     for friend in tweepy.Cursor(api.friends_ids,screen_name=user).items():
         # Process the friend here
         allfriends.append((friend))
-        if len(allfriends)>=499:
+        if len(allfriends)>=FRIENDS_TO_PULL:
             break
     print("Number of friends pulled:",len(allfriends))
     return allfriends
 
 def pull_tweets(user,alltweets):
     #API authentication
-    auth = tweepy.OAuthHandler('wAPYPlEpG8RTe4PpyJ0sGau4B', 'DfLpnQrRUG2TEZmB3ovvipn7LV9mQQfqvFjDQo6H5iyx1sVqkE')
-    auth.set_access_token('774246744133603328-SRXBwOfBlEILqw9pU3UDicNJHqI9Agz', 'Sy85WcL3hED8O9ocSKbRsy25HdhQMaBeyEJiD1dRG7zsg')
+    auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+    auth.set_access_token(ACCESS_TOKEN,ACCESS_SECRET)
     #auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
     #auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
     api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True, compression=True)
@@ -122,7 +130,7 @@ def pull_tweets(user,alltweets):
     #keep grabbing tweets until there are no tweets left to grab
     while len(new_tweets) > 0:
         print (len(alltweets))
-        if len(alltweets)>=499:
+        if len(alltweets)>=FRIENDS_TO_PULL:
             return alltweets
         #all subsiquent requests use the max_id param to prevent duplicates
         new_tweets = api.user_timeline(screen_name = user,count=200,max_id=oldest,include_rts=True)
@@ -137,7 +145,7 @@ def extract_hashtags(alltweets):
     for tweet in alltweets:
         x=tweet._json
         for hashtag in x['entities']['hashtags']:
-            
+
             allhashtags = allhashtags+','+str(hashtag['text'])
     return allhashtags
 
@@ -214,7 +222,7 @@ def classify_friends(allfriends,Result,):
     global cv_friends
     global lb_friends
     global friendsclf
-    
+
     X_test=extract_ids(allfriends)
     print ("Friends extracted")
     X_test = cv_friends.transform([X_test])
@@ -233,9 +241,9 @@ def classify_tweet(alltweets,Result,):
     global tweetclf
     X_test=extract_tweet(alltweets)
     print ("Tweet extracted")
-    
+
     X_test = cv_tweets.transform([X_test])
-    
+
     print ("Tweet applied transform and now predicting")
     X_test=X_test.toarray()
     result=tweetclf.predict(X_test)
@@ -251,13 +259,13 @@ def classify_bio(alltweets,Result,):
     global bioclf
     X_test=extract_bio(alltweets)
     print ("BIO extracted")
-    
+
     X_test = cv_bios.transform([X_test])
-    
+
     print ("BIO applied transform and now predicting")
     X_test=X_test.toarray()
     print(X_test.shape)
-    
+
     #with g5.as_default():
     result=bioclf.predict(X_test)
     result2=lb_bios.inverse_transform(result)
@@ -278,7 +286,7 @@ def classify_links(alltweets,Result,):
     print ("Links applied transform and now predicting")
     X_test=X_test.toarray()
     print(X_test.shape)
-    
+
     result=linksclf.predict(X_test)
     result2=lb_links.inverse_transform(result)
     result=list(result[0])
@@ -311,7 +319,7 @@ def classify(alltweets,allfriends,Result,):
     mentions.join()
     tweets.join()
     links.join()
-    
+
     return
 
 def get_prediction(user):
@@ -327,12 +335,3 @@ def get_prediction(user):
     friends.join()
     classify(alltweets,allfriends,Result,)
     return Result
-
-
-
-#while(True):
-#    user=input('Enter the name of the user: ')
-#    print(get_prediction(user))
-#    flag=input('More Preds(y/n): ')
-#    if(flag=='n'):
-#        break
