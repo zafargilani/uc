@@ -1,6 +1,6 @@
 # User Classification
 
-Contributors: [Sarim Zafar](mailto:sarim.zafar71@gmail.com), [Usman Sarwar](mailto:usman.sarwar23@gmail.com), [Zafar Gilani](https://github.com/zafargilani/)
+Contributors: [Sarim Zafar](https://github.com/sarim-zafar/), [Usman Sarwar](mailto:usman.sarwar23@gmail.com), [Zafar Gilani](https://github.com/zafargilani/)
 
 License: GPL 3.0
 
